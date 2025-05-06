@@ -1,0 +1,16 @@
+Story,Task,Estimate min (hr),Estimate max (hr),Actual,Comment
+Planning,Break down project and estimate time,0.5,1,,Initial scoping + time tracking CSV
+Data Setup,Load and validate product dataset,1,1.5,,"Clean, normalize for embedding"
+Data Setup,Load and validate order dataset,0.5,1,,Verify compatibility with mock API
+Microservices,Set up `order_lookup_service` (mock API),0.5,1,,Basic FastAPI endpoints using dataset
+Microservices,Build `product_search_service` using ChromaDB + MiniLM,2.5,3.5,,Dense embedding + semantic retrieval
+Microservices,Build `chat_service` router,2,3,,Routes query to order/product/LLM
+LLM Integration,Add Mistral LLM zero-shot classifier in router,2.5,3.5,,Decide between order/product/other
+LLM Integration,Prompt engineering for classification,1,1.5,,Design zero-shot routing prompt
+Deployment,Dockerize all services,1.5,2,,"Include llama-cpp, ChromaDB support"
+Deployment,Create and validate docker-compose.yml,0.5,1,,Run all services together locally
+Testing,Write and validate 5 queries per service,1,1.5,,Ensure chatbot handles realistic examples
+Versioning,Add versioned commits and tags,1,1.5,,Milestones v0.1 to v1.0
+Docs,Write README and usage instructions,0.5,1,,"curl, Docker, services overview"
+Time Tracking,Update actual time and comments,0.25,0.5,,Fill actual durations
+,,,,,
