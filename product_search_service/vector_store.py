@@ -1,5 +1,6 @@
 import pandas as pd
 import chromadb
+from chromadb import PersistentClient
 from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 
 import time
@@ -17,15 +18,12 @@ try:
     for col in df.select_dtypes(include="object").columns:
         df.loc[:, col] = df[col].fillna("")
 
-    # Initialize ChromaDB in-memory client
-    chroma_client = chromadb.Client()
+    chroma_client = PersistentClient(path="./chroma_db")
     embedding_fn = SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
-
     collection = chroma_client.get_or_create_collection(
         name="product_descriptions",
         embedding_function=embedding_fn
     )
-
     # Populate collection if empty
     if collection.count() == 0:
         print("🟡 Populating ChromaDB...")
@@ -35,7 +33,7 @@ try:
 
         for start in range(0, len(df), 166):
             end = min(start + 166, len(df))
-            print(f"📦 Adding batch {start}–{end}")
+            #print(f"📦 Adding batch {start}–{end}")
             collection.add(
                 documents=documents[start:end],
                 metadatas=metadatas[start:end],
@@ -49,7 +47,7 @@ except Exception as e:
 
 print(f"✅ Vector store ready in {round(time.time() - start, 2)}s")
 
-def get_similar_products(query: str, top_k: int = 3) -> str:
+def get_similar_products(query: str, top_k: int = 5) -> str:
     results = collection.query(query_texts=[query], n_results=top_k)
     products = results["metadatas"][0]
     return "\n".join(
