@@ -11,7 +11,7 @@ async def search(request: Request):
         if not query:
             return {"response": "Please provide a query."}
         
-        result = retrieve_with_llm(query)
+        result = await retrieve_with_llm(query)
         return {"response": result}
 
     except Exception as e:
