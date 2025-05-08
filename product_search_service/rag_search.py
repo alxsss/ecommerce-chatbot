@@ -11,15 +11,23 @@ async def call_llm(prompt):
         return "[LLM] Request failed."
 
 async def retrieve_with_llm(query: str) -> str:
-    context = get_similar_products(query)
-    prompt = f"""You are a helpful product assistant. Answer the question using the provided passage. 
-    Be sure to respond in a complete sentence, include price and ratings of products. 
+    products = get_similar_products(query, top_k=10)
 
-User query: {query}
+        # Format for LLM prompt
+    product_list = "\n".join(
+        f"{p.get('title', 'Unknown')} — ${p.get('price', 'N/A')} (Rating: {p.get('average_rating', 'N/A')})"
+        for i, p in enumerate(products)
+    )
 
-Relevant product info:
-{context}
+    prompt = f"""You are a helpful e-commerce assistant.
 
-Answer:"""
+    The user asked: "{query}"
+
+    Here are some product options:
+
+    {product_list}
+
+    Based on the user's question, choose the most suitable product and briefly explain why.
+    """
 
     return await call_llm(prompt)

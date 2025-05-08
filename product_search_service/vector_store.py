@@ -47,10 +47,6 @@ except Exception as e:
 
 print(f"✅ Vector store ready in {round(time.time() - start, 2)}s")
 
-def get_similar_products(query: str, top_k: int = 5) -> str:
+def get_similar_products(query: str, top_k: int = 10) -> str:
     results = collection.query(query_texts=[query], n_results=top_k)
-    products = results["metadatas"][0]
-    return "\n".join(
-        f"{item['title']} — ${item['price']} (Rating: {item['average_rating']})"
-        for item in products
-    )
+    return results["metadatas"][0]
