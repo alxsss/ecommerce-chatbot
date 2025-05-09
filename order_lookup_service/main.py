@@ -14,21 +14,19 @@ conversation_states: Dict[str, Dict] = {}  # {session_id: {history: [], pending_
 
 class UserQuery(BaseModel):
     query: str
-    session_id: str = "default"  # Default session for anonymous users
+    session_id: str = "default"
+    history_str: Optional[str] = None
+
 
 def extract_customer_id(query: str) -> Optional[int]:
     """Extracts customer ID from natural language"""
     match = re.search(r'(?:customer|id)\s*(?:is|:)?\s*(\d+)', query, re.IGNORECASE)
     return int(match.group(1)) if match else None
 
-def build_prompt(query: str, history: list = None) -> str:
-    """Builds conversation-aware prompt"""
-    history_str = "\n".join(history[-3:]) if history else "No history yet"
-    
-    return f"""
-    ### Role:
-    You are an e-commerce assistant that routes user queries to specific API endpoints.
+def build_prompt(query: str, history_str: str) -> str:
 
+    return f"""   
+    You are an e-commerce assistant that routes user queries to specific API endpoints.
     We have the following endpoints:
     - /data — Get all records in the dataset.
     - /data/customer/{{customer_id}} — Filter data by Customer ID (a number, required).
@@ -39,7 +37,7 @@ def build_prompt(query: str, history: list = None) -> str:
     - /data/shipping-cost-summary — Shipping cost summary.
     - /data/profit-by-gender — Profit summary by gender.
     Rules:
-    1. If the query contains only a number, treat it as a `customer_id`.
+    1. If the query contains a number like 12345, assume it is a cutomer ID and respond with `/data/customer/{{number}}`
     2. If the query contains a string like "high", "low", or "office supplies", treat it as a category or priority.
     3. If the query requires a `customer_id` but none is provided, ask for it.
     4. When `customer_id` is provided, respond with the correct `/data/customer/{{id}}` endpoint.
@@ -69,27 +67,21 @@ def build_prompt(query: str, history: list = None) -> str:
        ```text
        ENDPOINT: /data/order-priority/high
        ```
+    4. Query: "My customer ID is 12345"
+       Response:
+       ```text
+       ENDPOINT: /data/customer/12345
+       ```
     Current Query: {query}
     """
 
-def call_llm_with_context(query: str, session_id: str) -> str:
-    """Calls LLM with conversation context"""
-    conv = conversation_states.get(session_id, {
-        "history": [],
-        "pending_query": None,
-        "customer_id": None
-    })
-    
-    prompt = build_prompt(query, conv["history"])
+def call_llm_with_context(query: str, history_str: str) -> str:
+    prompt = build_prompt(query, history_str)   
     response = requests.post(
         "http://localhost:8003/generate",
         json={"prompt": prompt, "max_tokens": 50, "stop": ["```"]},
         timeout=180
     ).json()
-    
-    conv["history"].append(f"User: {query}")
-    conv["history"].append(f"Bot: {response['response']}")
-    conversation_states[session_id] = conv
     
     return response["response"]
 
@@ -134,27 +126,40 @@ def extract_endpoint(llm_response: str) -> str:
 @app.post("/order")
 async def order(query: UserQuery):
     """Interactive endpoint with conversation history"""
-    try:
-        # Get or initialize conversation state
-        conv = conversation_states.get(query.session_id, {
-            "history": [],
-            "pending_query": None,
-            "customer_id": None
-        })
-        llm_response = call_llm_with_context(query.query, query.session_id)
-        
+    try:        
+        # Use only the last 3 messages in history
+        short_history = "\n".join((query.history_str or "").splitlines()[-6:])  # 3 user-bot pairs = 6 lines
+        llm_response = call_llm_with_context(query.query, short_history)
+      
         # Parse LLM response
-        if "NEED_ID:" in llm_response:
-            conv["pending_query"] = query.query
+        if "NEED_ID:" in llm_response:        
             return {"response": llm_response.split("NEED_ID:")[1].strip()}
         
         endpoint = extract_endpoint(llm_response)
         data = await route_query_to_mock_api(endpoint) 
        
+        summary_prompt = f"""
+        ### Instruction:
+        The user asked: "{query.query}"
+        The backend returned the following data from endpoint `{endpoint}`:
+        {json.dumps(data, indent=2)}
+
+        Summarize the key insights in a clear, friendly way that makes sense to a customer.
+        Avoid listing raw fields unless helpful. You can also end with a follow-up suggestion like:
+        "Would you like to know more details?" or "Is there anything else I can help you with?"
+        """
+        summary_response = requests.post(
+            "http://localhost:8003/generate",
+            json={"prompt": summary_prompt, "max_tokens": 300},
+            timeout=360
+        ).json()
+        summary = summary_response["response"].strip().strip('"')
+        summary = summary.replace('\\n', '\n')
+
         return {
-            "response": data,
-            "endpoint": endpoint
+            "response": summary_response["response"],
+            #"endpoint": endpoint,
+            #"raw_data": data
         }
-        
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

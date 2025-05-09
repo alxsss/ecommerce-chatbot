@@ -16,7 +16,7 @@ async def route_query(query: str, session_id: str = None) -> str:
         if any(keyword in query_lower for keyword in [
             "order", "purchase", "customer id", "shipping", "payment", "priority", "profit"
         ]):
-            response = await client.post("http://localhost:8010/order", json={
+            response = await client.post("http://localhost:8002/order", json={
                 "query": query,
                 "session_id": session_id
             })
@@ -52,7 +52,7 @@ Only respond with one of these labels: order, product, or other.
         category = response.json().get("response", "").strip().lower()
 
         if category == "order":
-            response = await client.post("http://localhost:8010/order", json={
+            response = await client.post("http://localhost:8002/order", json={
                 "query": query,
                 "session_id": session_id
             })
