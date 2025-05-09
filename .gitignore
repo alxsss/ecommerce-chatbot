@@ -1,4 +1,6 @@
 *pycache*
-models
+model
 *.sh
 .vscode
+chroma_db
+*.pdf

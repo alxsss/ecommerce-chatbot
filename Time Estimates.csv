@@ -3,10 +3,14 @@ Planning,Break down project and estimate time,0.5,1,1,Initial scoping + time tra
 Data Setup,Load and validate product dataset,1,1.5,1,"Clean, normalize for embedding"
 Data Setup,Load and validate order dataset,0.5,1,0.5,investigate order dataset with mock API
 Microservices,Build `chat_service` router,2,3,2,Test if mistral model returns proper classification in case of fallback
-Microservices,Build `product_search_service` using ChromaDB + MiniLM,2.5,3.5,,Dense embedding + semantic retrieval
-Microservices,Set up `order_lookup_service` (mock API),0.5,1,,Basic FastAPI endpoints using dataset
-Microservices,Build `chat_service` router,2,3,,Routes query to order/product/LLM
-LLM Integration,Add Mistral LLM zero-shot classifier in router,2.5,3.5,,Decide between order/product/other
+Microservices,Build `product_search_service` using ChromaDB + MiniLM,2.5,3.5,4,Dense embedding + semantic retrieval
+Microservices,persist chromadb for faster load,1,1,1,optimize chromadb load
+Microservices,Create separate LLM service,1,2,2,create separate LLM service
+Microservices,Make chatbot interactive,2,3,2,make chatbot interactive,so that it could continue conversation
+Microservices,Set up `order_lookup_service` (mock API),0.5,1,1,Basic FastAPI endpoints using dataset
+Microservices,Test `order_lookup_service test` (mock API),4,5,5,Test order service
+Microservices,Build `chat_service` router,2,3,2,Routes query to order/product/LLM
+LLM Integration,Add Mistral LLM zero-shot classifier in router,2,3,2,Decide between order/product/other
 LLM Integration,Prompt engineering for classification,1,1.5,,Design zero-shot routing prompt
 Deployment,Dockerize all services,1.5,2,,"Include llama-cpp, ChromaDB support"
 Deployment,Create and validate docker-compose.yml,0.5,1,,Run all services together locally

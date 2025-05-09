@@ -1,12 +1,21 @@
 from fastapi import FastAPI
 import pandas as pd
+import numpy as np
 
 # Load dataset
-DATASET_PATH = "/Order_Data_Dataset.csv"
+DATASET_PATH = "Order_Data_Dataset.csv"
 df = pd.read_csv(DATASET_PATH)
 
 # Initialize FastAPI app
 app = FastAPI(title="E-commerce Dataset API", description="API for querying e-commerce sales data")
+
+# Convert to float, coercing any remaining errors to NaN
+df['Shipping_Cost'] = pd.to_numeric(df['Shipping_Cost'], errors='coerce')
+df['Sales'] = pd.to_numeric(df['Sales'], errors='coerce')
+# Convert to numeric, coercing errors to NaN
+df['Profit'] = pd.to_numeric(df['Profit'], errors='coerce')
+# Replace infinite values with NaN
+df['Profit'] = df['Profit'].replace([np.inf, -np.inf], np.nan)
 
 # Clean data (e.g., handle NaN values) at the start
 df.fillna(value="", inplace=True)
@@ -47,6 +56,7 @@ def get_orders_by_priority(priority: str):
 # Endpoint to calculate total sales by Product Category
 @app.get("/data/total-sales-by-category")
 def total_sales_by_category():
+    df["Sales"] = pd.to_numeric(df["Sales"], errors="coerce") 
     """Calculate total sales by Product Category."""
     sales_summary = df.groupby("Product_Category")["Sales"].sum().reset_index()
     return sales_summary.to_dict(orient="records")
@@ -64,6 +74,8 @@ def high_profit_products(min_profit: float = 100.0):
 @app.get("/data/shipping-cost-summary")
 def shipping_cost_summary():
     """Retrieve the average, minimum, and maximum shipping cost."""
+    assert pd.api.types.is_numeric_dtype(df['Shipping_Cost']), \
+        "Shipping_Cost must be numeric"
     summary = {
         "average_shipping_cost": df["Shipping_Cost"].mean(),
         "min_shipping_cost": df["Shipping_Cost"].min(),
