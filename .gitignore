@@ -1,6 +1,5 @@
 *pycache*
 model
-*.sh
 .vscode
 chroma_db
 *.pdf

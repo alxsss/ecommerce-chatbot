@@ -87,7 +87,7 @@ def call_llm_with_context(query: str, history_str: str) -> str:
 
 async def route_query_to_mock_api(endpoint: str) -> Dict:
     """Makes HTTP request to mock API endpoint"""
-    base_url = "http://localhost:8015"
+    base_url = "http://localhost:8004"
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(f"{base_url}{endpoint}")
