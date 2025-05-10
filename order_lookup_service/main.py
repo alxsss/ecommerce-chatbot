@@ -13,6 +13,7 @@ app = FastAPI()
 
 MOCK_API = os.getenv("MOCK_API")
 LLM_API = os.getenv("LLM_API")
+LLM_LIMIT=os.getenv("LLM_LIMIT")
 
 # Conversation state storage
 conversation_states: Dict[str, Dict] = {}  # {session_id: {history: [], pending_query: str, customer_id: int}}
@@ -143,7 +144,9 @@ async def order(query: UserQuery):
         
         endpoint = extract_endpoint(llm_response)
         data = await route_query_to_mock_api(endpoint) 
-       
+        #since openrouter has restrinction on the length of the prompts we need truncate data
+        if isinstance(data, list):
+           data = data[:10]
         summary_prompt = f"""
         ### Instruction:
         The user asked: "{query.query}"
