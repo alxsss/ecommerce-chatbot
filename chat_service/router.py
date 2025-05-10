@@ -4,6 +4,9 @@ from uuid import uuid4
 
 # Store session history in memory
 session_histories = {}
+ORDER_API = "http://order_lookup_service:8002/order"
+PRODUCT_API = "http://product_search_service:8001/product"
+LLM_API = "http://llm_service:8003/generate"
 
 async def route_query(query: str, session_id: str = None) -> str:
     query_lower = query.lower()
@@ -11,12 +14,12 @@ async def route_query(query: str, session_id: str = None) -> str:
         session_id = str(uuid4())
     history = session_histories.setdefault(session_id, [])
 
-    async with httpx.AsyncClient(timeout=180.0) as client:
+    async with httpx.AsyncClient(timeout=600.0) as client:
         # Rule-based order check
         if any(keyword in query_lower for keyword in [
             "order", "purchase", "customer id", "shipping", "payment", "priority", "profit"
         ]):
-            response = await client.post("http://localhost:8002/order", json={
+            response = await client.post(ORDER_API, json={
                 "query": query,
                 "session_id": session_id
             })
@@ -26,7 +29,7 @@ async def route_query(query: str, session_id: str = None) -> str:
         elif any(keyword in query_lower for keyword in [
             "product", "guitar", "price", "rated", "accessory", "category", "recommend", "feature"
         ]):
-            response = await client.post("http://localhost:8001/product", json={
+            response = await client.post(PRODUCT_API, json={
                 "query": query,
                 "session_id": session_id
             })
@@ -48,18 +51,18 @@ Only respond with one of these labels: order, product, or other.
 
 ### Classification:"""
 
-        response = await client.post("http://localhost:8003/generate", json={"prompt": classification_prompt, "max_tokens": 10})
+        response = await client.post(LLM_API, json={"prompt": classification_prompt, "max_tokens": 10})
         category = response.json().get("response", "").strip().lower()
 
         if category == "order":
-            response = await client.post("http://localhost:8002/order", json={
+            response = await client.post(ORDER_API, json={
                 "query": query,
                 "session_id": session_id
             })
             return response.json().get("response", "[Order] No response.")
 
         elif category == "product":
-            response = await client.post("http://localhost:8001/product", json={
+            response = await client.post(PRODUCT_API, json={
                 "query": query,
                 "session_id": session_id
             })

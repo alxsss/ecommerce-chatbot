@@ -1,25 +1,10 @@
 from fastapi import FastAPI, Request
-from rag_search import retrieve_with_llm
 from vector_store import get_similar_products
 import httpx
 app = FastAPI(title="Product Search RAG Service")
 
-@app.post("/search")
-async def search(request: Request):
-    try:
-        data = await request.json()
-        query = data.get("query", "")
-        if not query:
-            return {"response": "Please provide a query."}
-        
-        result = await retrieve_with_llm(query)
-        return {"response": result}
-
-    except Exception as e:
-        print("❌ Error in /search:", e)
-        return {"error": str(e)}
-
 session_histories = {}
+LLM_API = "http://llm_service:8003/generate"
 
 @app.post("/product")
 async def handle_product(request: Request):
@@ -48,7 +33,7 @@ async def handle_product(request: Request):
     
 
     async with httpx.AsyncClient(timeout=180.0) as client:
-        llm_response = await client.post("http://localhost:8003/generate", json={
+        llm_response = await client.post(LLM_API, json={
             "prompt": prompt,
             "max_tokens": 200
         })

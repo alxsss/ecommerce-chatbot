@@ -8,7 +8,8 @@ from typing import Dict, Optional
 import httpx
 
 app = FastAPI()
-
+LLM_API = "http://llm_service:8003/generate"
+MOCK_API= "http://mock_api_service:8005"
 # Conversation state storage
 conversation_states: Dict[str, Dict] = {}  # {session_id: {history: [], pending_query: str, customer_id: int}}
 
@@ -78,16 +79,16 @@ def build_prompt(query: str, history_str: str) -> str:
 def call_llm_with_context(query: str, history_str: str) -> str:
     prompt = build_prompt(query, history_str)   
     response = requests.post(
-        "http://localhost:8003/generate",
+        LLM_API,
         json={"prompt": prompt, "max_tokens": 50, "stop": ["```"]},
-        timeout=180
+        timeout=500
     ).json()
     
     return response["response"]
 
 async def route_query_to_mock_api(endpoint: str) -> Dict:
     """Makes HTTP request to mock API endpoint"""
-    base_url = "http://localhost:8015"
+    base_url = MOCK_API
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(f"{base_url}{endpoint}")
@@ -149,9 +150,9 @@ async def order(query: UserQuery):
         "Would you like to know more details?" or "Is there anything else I can help you with?"
         """
         summary_response = requests.post(
-            "http://localhost:8003/generate",
+            LLM_API,
             json={"prompt": summary_prompt, "max_tokens": 300},
-            timeout=360
+            timeout=500
         ).json()
         summary = summary_response["response"].strip().strip('"')
         summary = summary.replace('\\n', '\n')
