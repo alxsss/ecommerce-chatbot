@@ -3,3 +3,4 @@ model
 .vscode
 chroma_db
 *.pdf
+*.env

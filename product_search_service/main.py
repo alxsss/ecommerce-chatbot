@@ -1,10 +1,12 @@
 from fastapi import FastAPI, Request
 from vector_store import get_similar_products
 import httpx
+import os
+
 app = FastAPI(title="Product Search RAG Service")
-
-
 session_histories = {}
+
+LLM_API = os.getenv("LLM_API")
 
 @app.post("/product")
 async def handle_product(request: Request):
@@ -33,7 +35,7 @@ async def handle_product(request: Request):
     
 
     async with httpx.AsyncClient(timeout=180.0) as client:
-        llm_response = await client.post("http://localhost:8003/generate", json={
+        llm_response = await client.post(LLM_API, json={
             "prompt": prompt,
             "max_tokens": 200
         })

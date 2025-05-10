@@ -1,0 +1,50 @@
+# =============================
+# 1. docker-compose.yml (root)
+# =============================
+version: '3.9'
+
+services:
+  chat_service:
+    build: ./chat_service
+    ports:
+      - "8000:8000"
+    depends_on:
+      - product_search_service
+      - order_lookup_service
+      - llm_service
+    env_file:
+      - .env
+
+  product_search_service:
+    build: ./product_search_service
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./product_search_service/Product_Information_Dataset.csv:/app/Product_Information_Dataset.csv
+    env_file:
+      - .env
+
+  order_lookup_service:
+    build: ./order_lookup_service
+    ports:
+      - "8002:8002"
+    depends_on:
+      - mock_api_service
+    env_file:
+      - .env
+
+  mock_api_service:
+    build: ./order_lookup_service
+    command: [ "uvicorn", "mock_api:app", "--host", "0.0.0.0", "--port", "8005" ]
+    ports:
+      - "8005:8005"
+    volumes:
+      - ./order_lookup_service/Order_Data_Dataset.csv:/app/Order_Data_Dataset.csv:ro
+    env_file:
+      - .env
+  llm_service:
+    build: ./llm_service
+    ports:
+      - "8003:8003"
+    env_file:
+    - .env

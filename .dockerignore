@@ -1,0 +1,28 @@
+# Exclude model weights, local data, and unneeded files
+*.gguf
+*.pt
+*.bin
+*.csv
+*.log
+*.md
+
+# Python cache and environment
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE/project files
+.vscode/
+.idea/
+.env
+venv/
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# Skip local model and data folders
+model/
+data/

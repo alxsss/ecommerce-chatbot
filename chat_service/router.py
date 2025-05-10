@@ -1,9 +1,13 @@
 import httpx
 from fastapi import Request
 from uuid import uuid4
+import os
 
 # Store session history in memory
 session_histories = {}
+ORDER_API = os.getenv("ORDER_API")
+PRODUCT_SEARCH_API = os.getenv("PRODUCT_SEARCH_API")
+LLM_API = os.getenv("LLM_API")
 
 async def route_query(query: str, session_id: str = None) -> str:
     query_lower = query.lower()
@@ -11,12 +15,12 @@ async def route_query(query: str, session_id: str = None) -> str:
         session_id = str(uuid4())
     history = session_histories.setdefault(session_id, [])
 
-    async with httpx.AsyncClient(timeout=180.0) as client:
+    async with httpx.AsyncClient(timeout=600.0) as client:
         # Rule-based order check
         if any(keyword in query_lower for keyword in [
-            "order", "purchase", "customer id", "shipping", "payment", "priority", "profit"
+            "order", "purchase", "customer id", "shipping", "payment", "priority", "profit", "category"
         ]):
-            response = await client.post("http://localhost:8002/order", json={
+            response = await client.post(ORDER_API, json={
                 "query": query,
                 "session_id": session_id
             })
@@ -24,9 +28,9 @@ async def route_query(query: str, session_id: str = None) -> str:
 
         # Rule-based product check
         elif any(keyword in query_lower for keyword in [
-            "product", "guitar", "price", "rated", "accessory", "category", "recommend", "feature"
+            "product", "guitar", "price", "rated", "accessory", "recommend", "feature"
         ]):
-            response = await client.post("http://localhost:8001/product", json={
+            response = await client.post(PRODUCT_SEARCH_API, json={
                 "query": query,
                 "session_id": session_id
             })
@@ -48,18 +52,18 @@ Only respond with one of these labels: order, product, or other.
 
 ### Classification:"""
 
-        response = await client.post("http://localhost:8003/generate", json={"prompt": classification_prompt, "max_tokens": 10})
+        response = await client.post(LLM_API, json={"prompt": classification_prompt, "max_tokens": 10})
         category = response.json().get("response", "").strip().lower()
 
         if category == "order":
-            response = await client.post("http://localhost:8002/order", json={
+            response = await client.post(ORDER_API, json={
                 "query": query,
                 "session_id": session_id
             })
             return response.json().get("response", "[Order] No response.")
 
         elif category == "product":
-            response = await client.post("http://localhost:8001/product", json={
+            response = await client.post(PRODUCT_SEARCH_API, json={
                 "query": query,
                 "session_id": session_id
             })
